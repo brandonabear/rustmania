@@ -199,13 +199,21 @@ impl FromStr for GrooveRadar {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let values: Vec<&str> = s.split(',').map(str::trim).collect();
+        let mut values: Vec<&str> = s.split(',').map(str::trim).collect();
+
+        // Two-player files repeat the block once per player; only read the first.
+        match values.len() {
+            22 => values.truncate(11),
+            28 => values.truncate(14),
+            _ => {}
+        }
 
         if values.len() < 5 {
             bail!("Expected at least 5 values, got {}", values.len());
         }
 
-        // Count fields are only present in the 14-value form.
+        // Count fields beyond `chaos` are only present in the 11- and 14-value forms
+        // (the 11-value form omits rolls, lifts, and fakes).
         let count = |i: usize| -> Result<Option<u32>> {
             match values.get(i) {
                 Some(v) => Ok(Some(v.parse()?)),
@@ -322,6 +330,24 @@ pub struct NoteRow {
     pub notes: [NoteType; 4],
     pub measure: u16,
     pub quantization: u8,
-    pub beat: f64,
+    /// Index of this row within its measure (`0..quantization`).
+    ///
+    /// Stored instead of the beat itself (1 byte vs 8); see [`NoteRow::beat`].
+    pub slot: u8,
     pub seconds: f64,
 }
+
+impl NoteRow {
+    /// Beat position of a row, derived from where it sits in its measure.
+    pub fn beat_of(measure: u16, slot: u8, quantization: u8) -> f64 {
+        (measure as f64 * 4.0) + 4.0 * slot as f64 / quantization as f64
+    }
+
+    /// Beat position of this row, counted from the start of the chart.
+    pub fn beat(&self) -> f64 {
+        Self::beat_of(self.measure, self.slot, self.quantization)
+    }
+}
+
+#[cfg(test)]
+mod tests;

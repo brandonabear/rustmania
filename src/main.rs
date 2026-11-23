@@ -1,9 +1,6 @@
-mod parse;
-mod song;
-
-use crate::parse::parse_simfile;
 use anyhow::Result;
 use clap::Parser;
+use rustmania::parse::parse_simfile;
 use std::fs;
 use std::path::PathBuf;
 
