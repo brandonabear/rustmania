@@ -20,27 +20,34 @@ fn get_key_values(s: &str) -> impl Iterator<Item = (&str, &str)> {
 }
 
 /// Parse chart note data
-fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, s: &str) -> Result<()> {
-    for (idx, measure) in s.split(",").enumerate() {
+/// 
+/// Measures are separated by "," delimiters. Quantization is derived from number of rows in a measure.
+fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str) -> Result<()> {
+    for (measure_idx, measure_text) in note_text.split(",").enumerate() {
         // Split out rows within a measure
-        let rows: Vec<&str> = measure
+        let rows: Vec<&str> = measure_text
             .lines()
             .map(str::trim)
             .filter(|r| !r.is_empty())
             .collect();
-        let quantization = rows.len();
+
+        let quantization = u8::try_from(rows.len()).unwrap();
+        let measure = u16::try_from(measure_idx).unwrap();
+
         for (i, row) in rows.iter().enumerate() {
-            let beat = ((idx as f64 * 4.0) + 4.0 * i as f64 / quantization as f64);
+            
+            let beat = (measure_idx as f64 * 4.0) + 4.0 * i as f64 / quantization as f64;
             let notes: [NoteType; 4] = row
                 .chars()
                 .map(NoteType::try_from)
-                .collect::<Result<Vec<_>>>()?
+                .collect::<Result<Vec<NoteType>>>()?
                 .try_into()
-                .map_err(|v: Vec<_>| anyhow::anyhow!("expected 4 columns, got {}", v.len()))?;
+                .map_err(|v: Vec<NoteType>| anyhow::anyhow!("Expected 4 columns, got {}", v.len()))?;
+
             chart.notes.push(NoteRow {
                 notes: notes,
-                measure: u16::try_from(idx).unwrap(),
-                quantization: u8::try_from(quantization).unwrap(),
+                measure: measure,
+                quantization: quantization,
                 beat: beat,
                 seconds: timing_engine.beats_to_seconds(beat),
             });
@@ -57,6 +64,7 @@ pub fn parse_simfile(content: String) -> Result<Song> {
 
     // Clean input text and split into sections
     let clean_content = strip_comments(&content);
+    drop(content);
     let mut sections = clean_content.split("#NOTEDATA:");
 
     // Extract song header data

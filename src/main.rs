@@ -1,9 +1,6 @@
-mod parse;
-mod song;
-
-use crate::parse::parse_simfile;
 use anyhow::Result;
 use clap::Parser;
+use rustmania::parse::parse_simfile;
 use std::fs;
 use std::path::PathBuf;
 
@@ -24,7 +21,7 @@ fn main() -> Result<()> {
     let content = fs::read_to_string(&cli.path)?;
 
     let song = parse_simfile(content)?;
-    println!("{:#?}", &song.header);
+    println!("{:#?}", &song);
 
     Ok(())
 }
