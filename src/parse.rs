@@ -3,10 +3,14 @@ use anyhow::Result;
 
 /// Removes comments from text
 fn strip_comments(s: &str) -> String {
-    s.lines()
-        .map(|l| l.split("//").next().unwrap_or(""))
-        .collect::<Vec<_>>()
-        .join("\n")
+    let mut out = String::with_capacity(s.len());
+    for (i, line) in s.lines().enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+        out.push_str(line.split("//").next().unwrap_or(""));
+    }
+    out
 }
 
 /// Extract key:value pairs
@@ -23,36 +27,57 @@ fn get_key_values(s: &str) -> impl Iterator<Item = (&str, &str)> {
 /// 
 /// Measures are separated by "," delimiters. Quantization is derived from number of rows in a measure.
 fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str) -> Result<()> {
+    // Upper bound on row count (also counts blank and separator lines)
+    chart.notes.reserve(note_text.lines().count());
+
     for (measure_idx, measure_text) in note_text.split(",").enumerate() {
         // Split out rows within a measure
-        let rows: Vec<&str> = measure_text
-            .lines()
-            .map(str::trim)
-            .filter(|r| !r.is_empty())
-            .collect();
+        let rows = || {
+            measure_text
+                .lines()
+                .map(str::trim)
+                .filter(|r| !r.is_empty())
+        };
 
-        let quantization = u8::try_from(rows.len()).unwrap();
+        let quantization = u8::try_from(rows().count()).unwrap();
         let measure = u16::try_from(measure_idx).unwrap();
 
-        for (i, row) in rows.iter().enumerate() {
-            
-            let beat = (measure_idx as f64 * 4.0) + 4.0 * i as f64 / quantization as f64;
-            let notes: [NoteType; 4] = row
-                .chars()
-                .map(NoteType::try_from)
-                .collect::<Result<Vec<NoteType>>>()?
-                .try_into()
-                .map_err(|v: Vec<NoteType>| anyhow::anyhow!("Expected 4 columns, got {}", v.len()))?;
+        for (i, row) in rows().enumerate() {
+            // Position within the measure; counts empty rows, which aren't stored below
+            let slot = u8::try_from(i).unwrap();
+
+            // Parse the individual row columns
+            let mut notes: [NoteType; 4] = Default::default();
+            let mut cols = 0;
+            for c in row.chars() {
+                if cols == 4 {
+                    anyhow::bail!("Expected 4 columns, got more");
+                }
+                notes[cols] = NoteType::try_from(c)?;
+                cols += 1;
+            }
+            if cols != 4 {
+                anyhow::bail!("Expected 4 columns, got {cols}");
+            }
+
+            // Rows are validated above, but empty ones aren't stored: slot/seconds are
+            // kept on every stored row, so the timeline can be inferred without them.
+            if notes.iter().all(|n| matches!(n, NoteType::Empty)) {
+                continue;
+            }
 
             chart.notes.push(NoteRow {
                 notes: notes,
                 measure: measure,
                 quantization: quantization,
-                beat: beat,
-                seconds: timing_engine.beats_to_seconds(beat),
+                slot: slot,
+                seconds: timing_engine
+                    .beats_to_seconds(NoteRow::beat_of(measure, slot, quantization)),
             });
         }
     }
+    
+    chart.notes.shrink_to_fit();
     Ok(())
 }
 
