@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let content = fs::read_to_string(&cli.path)?;
 
     let song = parse_simfile(content)?;
-    println!("{:#?}", &song);
+    println!("{:#?}", &song.header);
 
     Ok(())
 }
