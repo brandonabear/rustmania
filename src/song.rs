@@ -199,13 +199,21 @@ impl FromStr for GrooveRadar {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let values: Vec<&str> = s.split(',').map(str::trim).collect();
+        let mut values: Vec<&str> = s.split(',').map(str::trim).collect();
+
+        // Two-player files repeat the block once per player; only read the first.
+        match values.len() {
+            22 => values.truncate(11),
+            28 => values.truncate(14),
+            _ => {}
+        }
 
         if values.len() < 5 {
             bail!("Expected at least 5 values, got {}", values.len());
         }
 
-        // Count fields are only present in the 14-value form.
+        // Count fields beyond `chaos` are only present in the 11- and 14-value forms
+        // (the 11-value form omits rolls, lifts, and fakes).
         let count = |i: usize| -> Result<Option<u32>> {
             match values.get(i) {
                 Some(v) => Ok(Some(v.parse()?)),
