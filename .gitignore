@@ -1,0 +1,10 @@
+# Folders
+target/
+.claude/
+
+# Dev
+.dev/
+debug.sh
+
+# Data
+data/
