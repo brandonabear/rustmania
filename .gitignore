@@ -5,6 +5,7 @@ target/
 # Dev
 .dev/
 debug.sh
+test.sh
 
 # Data
 data/

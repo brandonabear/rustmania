@@ -13,7 +13,7 @@ static ALLOC: dhat::Alloc = dhat::Alloc;
 fn parse_simfile_heap_usage() {
     let _profiler = dhat::Profiler::builder().testing().build();
 
-    let content = fs::read_to_string("data/burger.ssc").unwrap();
+    let content = fs::read_to_string("data/fots.ssc").unwrap();
     let file_bytes = content.len();
 
     let before = dhat::HeapStats::get();
