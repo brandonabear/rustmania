@@ -1,8 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
-use rustmania::parse::parse_simfile;
-use std::fs;
+use rustmania::parse::parse;
+use rustmania::serialize::save;
 use std::path::PathBuf;
+use std::time::Instant;
 
 #[derive(Parser)]
 #[command(version, about)]
@@ -14,14 +15,22 @@ struct Cli {
     /// Print additional detailed output
     #[arg(short, long)]
     verbose: bool,
+
+    /// Serialize to disk. Output to same directory as input.
+    #[arg(short, long)]
+    serialize: bool,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let content = fs::read_to_string(&cli.path)?;
+    let timer = Instant::now();
+    
+    let song = parse(&cli.path)?;
+    println!("Parsing completed in {:.2} ms", timer.elapsed().as_millis());
 
-    let song = parse_simfile(content)?;
-    println!("{:#?}", &song.header);
-
+    if cli.serialize {
+        let _ = save(&song, &cli.path).expect("Failed to serialize to disk.");
+    }
+    
     Ok(())
 }

@@ -1,17 +1,19 @@
+use crate::parse::Parser;
 use anyhow::{Context, Result, bail};
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 /// Represents the beat at which a time change is applied.
 /// 
 /// A `BeatChange` usually represents BPM changes or Stops.
-#[derive(Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct BeatChange {
     pub beat: f64,
     pub value: f64,
 }
 
 /// Enum of valid chart Difficulties
-#[derive(Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub enum Difficulty {
     #[default]
     Beginner,
@@ -62,7 +64,7 @@ fn parse_beat_change(s: &str) -> Option<Vec<BeatChange>> {
 }
 
 /// Represents the song-level metadata of a simfile
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Header {
     pub title: Option<String>,
     pub subtitle: Option<String>,
@@ -177,7 +179,7 @@ impl TimingEngine {
 }
 
 /// Represents statistics that drive the GrooveRadar game element
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct GrooveRadar {
     pub stream: Option<f64>,
     pub voltage: Option<f64>,
@@ -241,7 +243,7 @@ impl FromStr for GrooveRadar {
 }
 
 /// Represents the chart-level metadata of a simfile
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ChartMetadata {
     pub mode: String,
     pub description: String,
@@ -270,21 +272,22 @@ impl ChartMetadata {
 }
 
 /// Represents a given chart within a song
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Chart {
     pub metadata: ChartMetadata,
     pub notes: Vec<NoteRow>,
 }
 
 /// Represents a song (i.e. simfile)
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Song {
+    pub parser: Parser,
     pub header: Header,
     pub charts: Vec<Chart>,
 }
 
 /// Represents all possible panel values
-#[derive(Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub enum NoteType {
     #[default]
     Empty,
@@ -325,7 +328,7 @@ pub enum Column {
 }
 
 /// Represents information about a given row of notes in a chart
-#[derive(Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct NoteRow {
     pub notes: [NoteType; 4],
     pub measure: u16,

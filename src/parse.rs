@@ -1,11 +1,33 @@
 use crate::song::{Chart, Header, NoteRow, NoteType, Song, TimingEngine};
-use anyhow::Result;
+use crate::serialize::load;
+use anyhow::{Result, bail};
+use serde::{Deserialize, Serialize};
+use sha2::{Sha256, Digest};
+use std::path::Path;
+use std::fs;
+
+
+pub fn parse(source: &Path) -> Result<Song> {
+    let extension = source.extension().unwrap().to_str().unwrap();
+    let song = match extension {
+        "json" => load(source).unwrap(),
+        "ssc" => parse_simfile(source).unwrap(),
+        other => bail!("Unknown file extension: {other}"),
+    };
+    Ok(song)
+}
 
 /// Parse the raw text content from a `.ssc` file
-pub fn parse_simfile(content: String) -> Result<Song> {
+fn parse_simfile(source: &Path) -> Result<Song> {
     // Declare containers
     let mut song = Song::default();
     let mut header = Header::default();
+    let content = fs::read_to_string(source)?;
+
+    // Capture parser metadata
+    song.parser.source = String::from(source.to_str().unwrap());
+    song.parser.version = Parser::version();
+    song.parser.hash = Parser::hash(content.as_bytes());
 
     // Clean input text and split into sections
     let clean_content = strip_comments(&content);
@@ -37,6 +59,29 @@ pub fn parse_simfile(content: String) -> Result<Song> {
     }
 
     Ok(song)
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Parser {
+    pub source: String,
+    pub version: String,
+    pub hash: String,
+}
+
+impl Parser {
+    pub fn version() -> String {
+        env!("CARGO_PKG_VERSION").to_string()
+    }
+
+    pub fn hash(content: &[u8]) -> String {
+        let hash = {
+            let mut hasher = Sha256::new();
+            hasher.update(content);
+            let result = hasher.finalize();
+            result.iter().map(|b| format!("{:02x}", b)).collect()
+        };
+        hash
+    }
 }
 
 /// Removes comments from text
