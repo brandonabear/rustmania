@@ -1,5 +1,5 @@
 use crate::serialize::load;
-use crate::song::{Chart, Header, NoteRow, NoteType, Parser, Song, TimingEngine};
+use crate::song::{Chart, Header, NoteRow, NoteType, Provenance, Song, TimingEngine};
 use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::Path;
@@ -26,9 +26,9 @@ fn parse_simfile(source: &Path) -> Result<Song> {
     let content = fs::read_to_string(source)?;
 
     // Capture parser metadata
-    song.parser.source = source.to_string_lossy().into_owned();
-    song.parser.version = Parser::version();
-    song.parser.hash = Parser::hash(content.as_bytes());
+    song.provenance.source = source.to_string_lossy().into_owned();
+    song.provenance.version = Provenance::version();
+    song.provenance.hash = Provenance::hash(content.as_bytes());
 
     // Clean input text and split into sections
     let clean_content = strip_comments(&content);
@@ -117,7 +117,7 @@ fn parse_row(row: &str) -> Result<[NoteType; 4]> {
 /// Parse chart note data
 ///
 /// Measures are separated by "," delimiters. Q
-/// uantization is derived from number of rows in a measure.
+/// Quantization is derived from number of rows in a measure.
 fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str) -> Result<()> {
     // Upper bound on row count (also counts blank and separator lines)
     chart.notes.reserve(note_text.lines().count());

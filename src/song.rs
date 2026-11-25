@@ -279,13 +279,13 @@ pub struct Chart {
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct Parser {
+pub struct Provenance {
     pub source: String,
     pub version: String,
     pub hash: String,
 }
 
-impl Parser {
+impl Provenance {
     pub fn version() -> String {
         env!("CARGO_PKG_VERSION").to_string()
     }
@@ -301,7 +301,7 @@ impl Parser {
 /// Represents a song (i.e. simfile)
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Song {
-    pub parser: Parser,
+    pub provenance: Provenance,
     pub header: Header,
     pub charts: Vec<Chart>,
 }
