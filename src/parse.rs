@@ -1,9 +1,11 @@
 use crate::serialize::load;
-use crate::song::{Chart, Header, NoteRow, NoteType, Provenance, Song, TimingEngine};
+use crate::song::{Chart, Header, NoteRow, NoteType, Provenance, Song};
+use crate::timing::TimingEngine;
 use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::Path;
 
+/// Parse the provided file
 pub fn parse(source: &Path) -> Result<Song> {
     let extension = source
         .extension()
@@ -58,7 +60,7 @@ fn parse_simfile(source: &Path) -> Result<Song> {
             match k {
                 "NOTES" => parse_notes(&timing, &mut chart, v).with_context(|| {
                     format!(
-                        "Chart: {:#?}({:#?})",
+                        "Chart: {:?}({:?})",
                         song.header.title.as_ref(),
                         chart.metadata.difficulty
                     )
