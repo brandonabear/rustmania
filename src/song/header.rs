@@ -58,8 +58,8 @@ impl Header {
             "BGCHANGES" => self.bgchanges = Some(value.to_owned()),
             "FGCHANGES" => self.fgchanges = Some(value.to_owned()),
             "OFFSET" => self.offset = Some(value.parse::<f64>()?),
-            "BPMS" => self.bpms = parse_beat_change(value).context("invalid #BPMS")?,
-            "STOPS" => self.stops = parse_beat_change(value).context("invalid #STOPS")?,
+            "BPMS" => self.bpms = parse_beat_changes(value).context("invalid #BPMS")?,
+            "STOPS" => self.stops = parse_beat_changes(value).context("invalid #STOPS")?,
             _ => {}
         }
         Ok(())
@@ -75,25 +75,14 @@ pub struct BeatChange {
     pub value: f64,
 }
 
-/// Parses `beat=value,beat=value,...` into `(beat, value)` pairs in file order.
-/// Returns `None` if any entry is malformed.
-fn parse_pairs(s: &str) -> Option<Vec<(f64, f64)>> {
+/// Parse raw bpms/stops into `BeatChange` pairs
+fn parse_beat_changes(s: &str) -> Option<Vec<BeatChange>> {
     s.split(',')
         .map(str::trim)
         .filter(|p| !p.is_empty())
         .map(|p| {
             let (beat, value) = p.split_once('=')?;
-            Some((beat.trim().parse().ok()?, value.trim().parse().ok()?))
+            Some(BeatChange { beat: beat.trim().parse().ok()?, value: value.trim().parse().ok()? })
         })
         .collect()
-}
-
-/// Parses raw beat change strings into a vector of `BeatChange` structs
-fn parse_beat_change(s: &str) -> Option<Vec<BeatChange>> {
-    Some(
-        parse_pairs(s)?
-            .into_iter()
-            .map(|(beat, value)| BeatChange { beat, value })
-            .collect(),
-    )
 }
