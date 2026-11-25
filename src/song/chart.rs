@@ -10,10 +10,43 @@ pub struct Chart {
     pub notes: Vec<NoteRow>,
 }
 
+/// Represents the chart-level metadata of a simfile
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct ChartMetadata {
+    pub mode: Option<String>,
+    pub description: Option<String>,
+    pub credit: Option<String>,
+    pub chart_name: Option<String>,
+    pub difficulty: Option<Difficulty>,
+    pub rating: Option<f64>,
+    pub radar: Option<GrooveRadar>,
+}
+
+impl ChartMetadata {
+    pub(crate) fn set(&mut self, key: &str, value: &str) -> Result<()> {
+        // Return None for empty values
+        let value = value.trim();
+        if value.is_empty() {
+            return Ok(());
+        }
+
+        match key {
+            "STEPSTYPE" => self.mode = Some(value.to_owned()),
+            "DESCRIPTION" => self.description = Some(value.to_owned()),
+            "CREDIT" => self.credit = Some(value.to_owned()),
+            "CHARTNAME" => self.chart_name = Some(value.to_owned()),
+            "DIFFICULTY" => self.difficulty = Some(value.parse::<Difficulty>()?),
+            "METER" => self.rating = Some(value.parse::<f64>()?),
+            "RADARVALUES" => self.radar = Some(value.parse::<GrooveRadar>()?),
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
 /// Enum of valid chart Difficulties
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Difficulty {
-    #[default]
     Beginner,
     Easy,
     Medium,
@@ -41,11 +74,11 @@ impl FromStr for Difficulty {
 /// Represents statistics that drive the GrooveRadar game element
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct GrooveRadar {
-    pub stream: Option<f64>,
-    pub voltage: Option<f64>,
-    pub air: Option<f64>,
-    pub freeze: Option<f64>,
-    pub chaos: Option<f64>,
+    pub stream: f64,
+    pub voltage: f64,
+    pub air: f64,
+    pub freeze: f64,
+    pub chaos: f64,
     pub steps: Option<u32>,
     pub taps: Option<u32>,
     pub jumps: Option<u32>,
@@ -84,11 +117,11 @@ impl FromStr for GrooveRadar {
         };
 
         Ok(GrooveRadar {
-            stream: Some(values[0].parse::<f64>()?),
-            voltage: Some(values[1].parse::<f64>()?),
-            air: Some(values[2].parse::<f64>()?),
-            freeze: Some(values[3].parse::<f64>()?),
-            chaos: Some(values[4].parse::<f64>()?),
+            stream: values[0].parse::<f64>()?,
+            voltage:values[1].parse::<f64>()?,
+            air: values[2].parse::<f64>()?,
+            freeze: values[3].parse::<f64>()?,
+            chaos: values[4].parse::<f64>()?,
             steps: count(5)?,
             taps: count(6)?,
             jumps: count(7)?,
@@ -99,34 +132,5 @@ impl FromStr for GrooveRadar {
             lifts: count(12)?,
             fakes: count(13)?,
         })
-    }
-}
-
-/// Represents the chart-level metadata of a simfile
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct ChartMetadata {
-    pub mode: String,
-    pub description: String,
-    pub credit: String,
-    pub chart_name: String,
-    pub difficulty: Difficulty,
-    pub rating: f64,
-    pub radar: GrooveRadar,
-}
-
-impl ChartMetadata {
-    pub(crate) fn set(&mut self, key: &str, value: &str) -> Result<()> {
-        let value = value.trim();
-        match key {
-            "STEPSTYPE" => self.mode = value.to_owned(),
-            "DESCRIPTION" => self.description = value.to_owned(),
-            "CREDIT" => self.credit = value.to_owned(),
-            "CHARTNAME" => self.chart_name = value.to_owned(),
-            "DIFFICULTY" => self.difficulty = value.parse::<Difficulty>()?,
-            "METER" => self.rating = value.parse::<f64>()?,
-            "RADARVALUES" => self.radar = value.parse::<GrooveRadar>()?,
-            _ => {}
-        }
-        Ok(())
     }
 }

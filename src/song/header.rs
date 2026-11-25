@@ -29,8 +29,14 @@ pub struct Header {
 }
 
 impl Header {
+    /// Sets the field matching a `.ssc` header tag.
     pub(crate) fn set(&mut self, key: &str, value: &str) -> Result<()> {
+        // Return None for empty values
         let value = value.trim();
+        if value.is_empty() {
+            return Ok(());
+        }
+        
         match key {
             "TITLE" => self.title = Some(value.to_owned()),
             "SUBTITLE" => self.subtitle = Some(value.to_owned()),
