@@ -1,0 +1,40 @@
+# Creates a `vX.Y.Z` tag whenever the version in Cargo.toml changes on main.
+#
+# Cargo.toml is the single source of truth: bump the version in a PR, and the tag is
+# created when the PR is merged. If the tag already exists, nothing happens.
+name: Tag release
+
+on:
+  push:
+    branches: [main]
+    paths: [Cargo.toml]
+  workflow_dispatch: # allow running by hand from the Actions tab
+
+permissions:
+  contents: write # needed to push the tag
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from Cargo.toml
+        id: version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag if it doesn't exist
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+            echo "Tag $TAG already exists; nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
+          echo "Created tag $TAG"
