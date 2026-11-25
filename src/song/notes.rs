@@ -2,7 +2,7 @@ use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 
 /// Represents all possible panel values
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default, Debug)]
 pub enum NoteType {
     #[default]
     Empty,

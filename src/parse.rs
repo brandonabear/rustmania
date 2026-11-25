@@ -98,19 +98,14 @@ fn get_key_values(s: &str) -> impl Iterator<Item = (&str, &str)> {
 
 /// Parse an individual note row
 fn parse_row(row: &str) -> Result<[NoteType; 4]> {
-    let mut notes: [NoteType; 4] = Default::default();
-    let mut cols = 0;
-
-    for c in row.chars() {
-        if cols == 4 {
-            anyhow::bail!("Expected 4 columns, got more");
-        }
-        notes[cols] = NoteType::try_from(c)?;
-        cols += 1;
+    let cols = row.chars().count();
+    if cols != 4 {
+        bail!("Expected 4 columns, got {cols}");
     }
 
-    if cols != 4 {
-        anyhow::bail!("Expected 4 columns, got {cols}");
+    let mut notes = [NoteType::Empty; 4];
+    for (note, c) in notes.iter_mut().zip(row.chars()) {
+        *note = NoteType::try_from(c)?;
     }
 
     Ok(notes)
@@ -144,7 +139,7 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
                 parse_row(row).with_context(|| format!("Measure {measure_idx}: {row:?}"))?;
 
             // Skip empty rows
-            if notes.iter().all(|n| matches!(n, NoteType::Empty)) {
+            if notes.iter().all(|&n| n == NoteType::Empty) {
                 continue;
             }
 
