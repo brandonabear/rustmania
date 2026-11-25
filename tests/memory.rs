@@ -3,8 +3,9 @@
 //! dhat's stats are process-global, so this file must contain exactly one test.
 //! Run with `cargo test --test memory -- --nocapture` to see the numbers.
 
-use rustmania::parse::parse_simfile;
+use rustmania::parse;
 use std::fs;
+use std::path::PathBuf;
 
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
@@ -13,11 +14,12 @@ static ALLOC: dhat::Alloc = dhat::Alloc;
 fn parse_simfile_heap_usage() {
     let _profiler = dhat::Profiler::builder().testing().build();
 
-    let content = fs::read_to_string("data/fots.ssc").unwrap();
-    let file_bytes = content.len();
+    let path = PathBuf::from("data/fots.ssc");
+    // Only read the size: holding the file contents would inflate the peak below
+    let file_bytes = fs::metadata(&path).unwrap().len();
 
     let before = dhat::HeapStats::get();
-    let song = parse_simfile(content).unwrap();
+    let song = parse(&path).unwrap();
     let after = dhat::HeapStats::get();
 
     println!("file size:        {file_bytes} bytes");
