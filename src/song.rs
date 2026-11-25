@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 /// Represents the beat at which a time change is applied.
-/// 
+///
 /// A `BeatChange` usually represents BPM changes or Stops.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct BeatChange {

@@ -1,18 +1,17 @@
-use crate::song::{Chart, Header, NoteRow, NoteType, Song, TimingEngine};
 use crate::serialize::load;
+use crate::song::{Chart, Header, NoteRow, NoteType, Song, TimingEngine};
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
-use sha2::{Sha256, Digest};
-use std::path::Path;
+use sha2::{Digest, Sha256};
 use std::fs;
-
+use std::path::Path;
 
 pub fn parse(source: &Path) -> Result<Song> {
     let extension = source
         .extension()
         .and_then(|e| e.to_str())
         .with_context(|| format!("No file extension: {}", source.display()))?;
-    
+
     let song = match extension {
         "json" => load(source)?,
         "ssc" => parse_simfile(source)?,
@@ -111,7 +110,7 @@ fn get_key_values(s: &str) -> impl Iterator<Item = (&str, &str)> {
 }
 
 /// Parse chart note data
-/// 
+///
 /// Measures are separated by "," delimiters. Quantization is derived from number of rows in a measure.
 fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str) -> Result<()> {
     // Upper bound on row count (also counts blank and separator lines)
@@ -159,13 +158,15 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
                 measure: measure,
                 quantization: quantization,
                 slot: slot,
-                seconds: timing_engine
-                    .beats_to_seconds(NoteRow::beat_of(measure, slot, quantization)),
+                seconds: timing_engine.beats_to_seconds(NoteRow::beat_of(
+                    measure,
+                    slot,
+                    quantization,
+                )),
             });
         }
     }
-    
+
     chart.notes.shrink_to_fit();
     Ok(())
 }
-

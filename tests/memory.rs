@@ -7,7 +7,6 @@ use rustmania::parse::parse;
 use std::fs;
 use std::path::PathBuf;
 
-
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
