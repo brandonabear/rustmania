@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use rustmania::parse::parse;
+use rustmania::parse;
 use rustmania::serialize::save;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -8,7 +8,7 @@ use std::time::Instant;
 #[derive(Parser)]
 #[command(version, about)]
 struct Cli {
-    /// Path to the simfile you wish to parse. Only `.ssc` is supported
+    /// Path to the file to load: a `.ssc` simfile, or `.json` written by `--output`
     #[arg(short, long)]
     path: PathBuf,
 
@@ -30,10 +30,7 @@ fn main() -> Result<()> {
     let timer = Instant::now();
 
     let song = parse(&cli.path)?;
-    println!(
-        "Parsing completed in {:.2} ms",
-        timer.elapsed().as_secs_f64() * 1000.0
-    );
+    println!("Loaded in {:.2} ms", timer.elapsed().as_secs_f64() * 1000.0);
 
     if let Some(output) = cli.output {
         let out_path = output.unwrap_or_else(|| cli.path.with_extension("json"));

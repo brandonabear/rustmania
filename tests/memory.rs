@@ -3,7 +3,7 @@
 //! dhat's stats are process-global, so this file must contain exactly one test.
 //! Run with `cargo test --test memory -- --nocapture` to see the numbers.
 
-use rustmania::parse::parse;
+use rustmania::parse;
 use std::fs;
 use std::path::PathBuf;
 

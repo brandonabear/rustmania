@@ -7,6 +7,7 @@ pub use notes::{NoteRow, NoteType};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::fmt::Write;
 
 /// Represents a song (i.e. simfile)
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -33,7 +34,12 @@ impl Provenance {
         let mut hasher = Sha256::new();
         hasher.update(content);
         let result = hasher.finalize();
-        result.iter().map(|b| format!("{:02x}", b)).collect()
+
+        let mut hex = String::with_capacity(result.len() * 2);
+        for b in result {
+            write!(hex, "{b:02x}").expect("writing to a String can't fail");
+        }
+        hex
     }
 }
 

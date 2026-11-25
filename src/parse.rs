@@ -12,12 +12,11 @@ pub fn parse(source: &Path) -> Result<Song> {
         .and_then(|e| e.to_str())
         .with_context(|| format!("No file extension: {}", source.display()))?;
 
-    let song = match extension {
-        "json" => load(source)?,
-        "ssc" => parse_simfile(source)?,
+    match extension {
+        "json" => load(source),
+        "ssc" => parse_simfile(source),
         other => bail!("Unknown file extension: {other}"),
-    };
-    Ok(song)
+    }
 }
 
 /// Parse the raw text content from a `.ssc` file
@@ -81,7 +80,7 @@ fn strip_comments(s: &str) -> String {
         if i > 0 {
             out.push('\n');
         }
-        out.push_str(line.split("//").next().unwrap_or(""));
+        out.push_str(line.split_once("//").map_or(line, |(code, _)| code));
     }
     out
 }
@@ -120,7 +119,8 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
     chart.notes.reserve(note_text.lines().count());
 
     for (measure_idx, measure_text) in note_text.split(",").enumerate() {
-        // Split out rows within a measure
+        // Non-empty rows within a measure. A closure rather than a collected `Vec` so it
+        // can be iterated twice (once to count, once to parse) without allocating per measure
         let rows = || {
             measure_text
                 .lines()
@@ -160,3 +160,6 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
     chart.notes.shrink_to_fit();
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

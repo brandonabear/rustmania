@@ -14,7 +14,7 @@ pub fn save(song: &Song, path: &Path, force: bool) -> Result<()> {
         File::create_new(path)?
     };
     let writer = BufWriter::new(file);
-    serde_json::to_writer_pretty(writer, song)?;
+    serde_json::to_writer(writer, song)?;
     Ok(())
 }
 

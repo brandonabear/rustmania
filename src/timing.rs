@@ -55,3 +55,6 @@ impl TimingEngine {
         elapsed - self.offset
     }
 }
+
+#[cfg(test)]
+mod tests;
