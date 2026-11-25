@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use rustmania::parse::parse;
 use rustmania::serialize::save;
@@ -24,13 +24,16 @@ struct Cli {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let timer = Instant::now();
-    
+
     let song = parse(&cli.path)?;
-    println!("Parsing completed in {:.2} ms", timer.elapsed().as_millis());
+    println!(
+        "Parsing completed in {:.2} ms",
+        timer.elapsed().as_secs_f64() * 1000.0
+    );
 
     if cli.serialize {
-        let _ = save(&song, &cli.path).expect("Failed to serialize to disk.");
+        save(&song, &cli.path).context("Failed to serialize to disk")?;
     }
-    
+
     Ok(())
 }

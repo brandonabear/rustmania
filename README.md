@@ -13,5 +13,5 @@
 cargo run -- --path path/to/file.ssc;
 
 # Serialize as JSON
-cargo run -- --path path/to/file.ssc -serialize;
+cargo run -- --path path/to/file.ssc --serialize;
 ```

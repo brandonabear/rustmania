@@ -1,6 +1,6 @@
 use crate::song::{Chart, Header, NoteRow, NoteType, Song, TimingEngine};
 use crate::serialize::load;
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use sha2::{Sha256, Digest};
 use std::path::Path;
@@ -8,10 +8,14 @@ use std::fs;
 
 
 pub fn parse(source: &Path) -> Result<Song> {
-    let extension = source.extension().unwrap().to_str().unwrap();
+    let extension = source
+        .extension()
+        .and_then(|e| e.to_str())
+        .with_context(|| format!("No file extension: {}", source.display()))?;
+    
     let song = match extension {
-        "json" => load(source).unwrap(),
-        "ssc" => parse_simfile(source).unwrap(),
+        "json" => load(source)?,
+        "ssc" => parse_simfile(source)?,
         other => bail!("Unknown file extension: {other}"),
     };
     Ok(song)
@@ -25,7 +29,7 @@ fn parse_simfile(source: &Path) -> Result<Song> {
     let content = fs::read_to_string(source)?;
 
     // Capture parser metadata
-    song.parser.source = String::from(source.to_str().unwrap());
+    song.parser.source = source.to_string_lossy().into_owned();
     song.parser.version = Parser::version();
     song.parser.hash = Parser::hash(content.as_bytes());
 
@@ -122,12 +126,13 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
                 .filter(|r| !r.is_empty())
         };
 
-        let quantization = u8::try_from(rows().count()).unwrap();
-        let measure = u16::try_from(measure_idx).unwrap();
+        let quantization = u8::try_from(rows().count())
+            .with_context(|| format!("Measure {measure_idx} has more than 255 rows"))?;
+        let measure = u16::try_from(measure_idx).context("Chart has too many measures")?;
 
         for (i, row) in rows().enumerate() {
             // Position within the measure; counts empty rows, which aren't stored below
-            let slot = u8::try_from(i).unwrap();
+            let slot = u8::try_from(i)?;
 
             // Parse the individual row columns
             let mut notes: [NoteType; 4] = Default::default();

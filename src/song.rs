@@ -262,7 +262,7 @@ impl ChartMetadata {
             "DESCRIPTION" => self.description = value.to_owned(),
             "CREDIT" => self.credit = value.to_owned(),
             "CHARTNAME" => self.chart_name = value.to_owned(),
-            "DIFFICULTY" => self.difficulty = value.parse::<Difficulty>().unwrap(),
+            "DIFFICULTY" => self.difficulty = value.parse::<Difficulty>()?,
             "METER" => self.rating = value.parse::<f64>()?,
             "RADARVALUES" => self.radar = value.parse::<GrooveRadar>()?,
             _ => {}
