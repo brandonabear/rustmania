@@ -1,8 +1,6 @@
 use crate::serialize::load;
-use crate::song::{Chart, Header, NoteRow, NoteType, Song, TimingEngine};
+use crate::song::{Chart, Header, NoteRow, NoteType, Parser, Song, TimingEngine};
 use anyhow::{Context, Result, bail};
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::Path;
 
@@ -42,6 +40,10 @@ fn parse_simfile(source: &Path) -> Result<Song> {
     for (k, v) in get_key_values(header_data) {
         header.set(k, v)?;
     }
+
+    if header.bpms.is_empty() {
+        bail!("Missing or empty #BPMS");
+    }
     song.header = header;
 
     // Extract metadata and notes from chart(s)
@@ -54,7 +56,13 @@ fn parse_simfile(source: &Path) -> Result<Song> {
         let mut chart = Chart::default();
         for (k, v) in get_key_values(chart_text) {
             match k {
-                "NOTES" => parse_notes(&timing, &mut chart, v)?,
+                "NOTES" => parse_notes(&timing, &mut chart, v).with_context(|| {
+                    format!(
+                        "Chart: {:#?}({:#?})",
+                        song.header.title.as_ref(),
+                        chart.metadata.difficulty
+                    )
+                })?,
                 _ => chart.metadata.set(k, v)?,
             }
         }
@@ -62,26 +70,6 @@ fn parse_simfile(source: &Path) -> Result<Song> {
     }
 
     Ok(song)
-}
-
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct Parser {
-    pub source: String,
-    pub version: String,
-    pub hash: String,
-}
-
-impl Parser {
-    pub fn version() -> String {
-        env!("CARGO_PKG_VERSION").to_string()
-    }
-
-    pub fn hash(content: &[u8]) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(content);
-        let result = hasher.finalize();
-        result.iter().map(|b| format!("{:02x}", b)).collect()
-    }
 }
 
 /// Removes comments from text
@@ -106,9 +94,30 @@ fn get_key_values(s: &str) -> impl Iterator<Item = (&str, &str)> {
     })
 }
 
+/// Parse an individual note row
+fn parse_row(row: &str) -> Result<[NoteType; 4]> {
+    let mut notes: [NoteType; 4] = Default::default();
+    let mut cols = 0;
+
+    for c in row.chars() {
+        if cols == 4 {
+            anyhow::bail!("Expected 4 columns, got more");
+        }
+        notes[cols] = NoteType::try_from(c)?;
+        cols += 1;
+    }
+
+    if cols != 4 {
+        anyhow::bail!("Expected 4 columns, got {cols}");
+    }
+
+    Ok(notes)
+}
+
 /// Parse chart note data
 ///
-/// Measures are separated by "," delimiters. Quantization is derived from number of rows in a measure.
+/// Measures are separated by "," delimiters. Q
+/// uantization is derived from number of rows in a measure.
 fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str) -> Result<()> {
     // Upper bound on row count (also counts blank and separator lines)
     chart.notes.reserve(note_text.lines().count());
@@ -129,23 +138,10 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
         for (i, row) in rows().enumerate() {
             // Position within the measure; counts empty rows, which aren't stored below
             let slot = u8::try_from(i)?;
+            let notes =
+                parse_row(row).with_context(|| format!("Measure {measure_idx}: {row:?}"))?;
 
-            // Parse the individual row columns
-            let mut notes: [NoteType; 4] = Default::default();
-            let mut cols = 0;
-            for c in row.chars() {
-                if cols == 4 {
-                    anyhow::bail!("Expected 4 columns, got more");
-                }
-                notes[cols] = NoteType::try_from(c)?;
-                cols += 1;
-            }
-            if cols != 4 {
-                anyhow::bail!("Expected 4 columns, got {cols}");
-            }
-
-            // Rows are validated above, but empty ones aren't stored: slot/seconds are
-            // kept on every stored row, so the timeline can be inferred without them.
+            // Skip empty rows
             if notes.iter().all(|n| matches!(n, NoteType::Empty)) {
                 continue;
             }

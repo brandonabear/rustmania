@@ -15,8 +15,8 @@ fn parse_simfile_heap_usage() {
     let _profiler = dhat::Profiler::builder().testing().build();
 
     let path = PathBuf::from("data/fots.ssc");
-    let content = fs::read_to_string(&path).unwrap();
-    let file_bytes = content.len();
+    // Only read the size: holding the file contents would inflate the peak below
+    let file_bytes = fs::metadata(&path).unwrap().len();
 
     let before = dhat::HeapStats::get();
     let song = parse(&path).unwrap();

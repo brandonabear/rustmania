@@ -1,6 +1,6 @@
-use crate::parse::Parser;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::str::FromStr;
 
 /// Represents the beat at which a time change is applied.
@@ -28,13 +28,13 @@ impl FromStr for Difficulty {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Beginner" => Ok(Difficulty::Beginner),
-            "Easy" => Ok(Difficulty::Easy),
-            "Medium" => Ok(Difficulty::Medium),
-            "Hard" => Ok(Difficulty::Hard),
-            "Challenge" => Ok(Difficulty::Challenge),
-            "Edit" => Ok(Difficulty::Edit),
+        match s.to_ascii_lowercase().as_str() {
+            "beginner" => Ok(Difficulty::Beginner),
+            "easy" => Ok(Difficulty::Easy),
+            "medium" => Ok(Difficulty::Medium),
+            "hard" => Ok(Difficulty::Hard),
+            "challenge" => Ok(Difficulty::Challenge),
+            "edit" => Ok(Difficulty::Edit),
             other => bail!("Unknown Difficulty: {other}"),
         }
     }
@@ -276,6 +276,26 @@ impl ChartMetadata {
 pub struct Chart {
     pub metadata: ChartMetadata,
     pub notes: Vec<NoteRow>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Parser {
+    pub source: String,
+    pub version: String,
+    pub hash: String,
+}
+
+impl Parser {
+    pub fn version() -> String {
+        env!("CARGO_PKG_VERSION").to_string()
+    }
+
+    pub fn hash(content: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(content);
+        let result = hasher.finalize();
+        result.iter().map(|b| format!("{:02x}", b)).collect()
+    }
 }
 
 /// Represents a song (i.e. simfile)
