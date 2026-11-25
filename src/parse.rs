@@ -77,13 +77,10 @@ impl Parser {
     }
 
     pub fn hash(content: &[u8]) -> String {
-        let hash = {
-            let mut hasher = Sha256::new();
-            hasher.update(content);
-            let result = hasher.finalize();
-            result.iter().map(|b| format!("{:02x}", b)).collect()
-        };
-        hash
+        let mut hasher = Sha256::new();
+        hasher.update(content);
+        let result = hasher.finalize();
+        result.iter().map(|b| format!("{:02x}", b)).collect()
     }
 }
 
@@ -154,10 +151,10 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
             }
 
             chart.notes.push(NoteRow {
-                notes: notes,
-                measure: measure,
-                quantization: quantization,
-                slot: slot,
+                notes,
+                measure,
+                quantization,
+                slot,
                 seconds: timing_engine.beats_to_seconds(NoteRow::beat_of(
                     measure,
                     slot,
