@@ -16,9 +16,13 @@ struct Cli {
     #[arg(short, long)]
     verbose: bool,
 
-    /// Serialize to disk. Output to same directory as input.
-    #[arg(short, long)]
-    serialize: bool,
+    /// Serialize to JSON. Defaults to the input path with a `.json` extension.
+    #[arg(short, long, value_name = "PATH", num_args = 0..=1)]
+    output: Option<Option<PathBuf>>,
+
+    /// Overwrite the output file if it already exists
+    #[arg(short, long, requires = "output")]
+    force: bool,
 }
 
 fn main() -> Result<()> {
@@ -31,8 +35,10 @@ fn main() -> Result<()> {
         timer.elapsed().as_secs_f64() * 1000.0
     );
 
-    if cli.serialize {
-        save(&song, &cli.path).context("Failed to serialize to disk")?;
+    if let Some(output) = cli.output {
+        let out_path = output.unwrap_or_else(|| cli.path.with_extension("json"));
+        save(&song, &out_path, cli.force)
+            .with_context(|| format!("Failed to write {}", out_path.display()))?;
     }
 
     Ok(())

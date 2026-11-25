@@ -118,7 +118,7 @@ impl FromStr for GrooveRadar {
 
         Ok(GrooveRadar {
             stream: values[0].parse::<f64>()?,
-            voltage:values[1].parse::<f64>()?,
+            voltage: values[1].parse::<f64>()?,
             air: values[2].parse::<f64>()?,
             freeze: values[3].parse::<f64>()?,
             chaos: values[4].parse::<f64>()?,

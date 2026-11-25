@@ -36,7 +36,7 @@ impl Header {
         if value.is_empty() {
             return Ok(());
         }
-        
+
         match key {
             "TITLE" => self.title = Some(value.to_owned()),
             "SUBTITLE" => self.subtitle = Some(value.to_owned()),
@@ -82,7 +82,10 @@ fn parse_beat_changes(s: &str) -> Option<Vec<BeatChange>> {
         .filter(|p| !p.is_empty())
         .map(|p| {
             let (beat, value) = p.split_once('=')?;
-            Some(BeatChange { beat: beat.trim().parse().ok()?, value: value.trim().parse().ok()? })
+            Some(BeatChange {
+                beat: beat.trim().parse().ok()?,
+                value: value.trim().parse().ok()?,
+            })
         })
         .collect()
 }
