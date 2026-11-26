@@ -12,10 +12,6 @@ struct Cli {
     #[arg(short, long)]
     path: PathBuf,
 
-    /// Print additional detailed output
-    #[arg(short, long)]
-    verbose: bool,
-
     /// Serialize to JSON. Defaults to the input path with a `.json` extension.
     #[arg(short, long, value_name = "PATH", num_args = 0..=1)]
     output: Option<Option<PathBuf>>,
