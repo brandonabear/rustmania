@@ -122,3 +122,119 @@ fn radar_error_on_fractional_count() {
     // Counts are whole numbers
     assert!("0.1,0.2,0.3,0.4,0.5,1.5".parse::<GrooveRadar>().is_err());
 }
+
+// ---------------------------------------------------------------------------
+// AnchorTracker
+// ---------------------------------------------------------------------------
+
+/// The four notes of a row as written in a simfile, e.g. `"2M00"`
+fn cols(row: &str) -> anchor::Columns {
+    let chars: Vec<char> = row.chars().collect();
+    assert_eq!(chars.len(), 4, "row must have 4 columns: {row:?}");
+    std::array::from_fn(|i| NoteType::try_from(chars[i]).unwrap())
+}
+
+/// Feed rows to a fresh tracker in order, collecting `(holds, rolls)` for each
+fn track(rows: &[&str]) -> Vec<(Panel, Panel)> {
+    let mut tracker = AnchorTracker::default();
+    rows.iter().map(|row| tracker.advance(cols(row))).collect()
+}
+
+const NONE: Panel = Panel::empty();
+
+#[test]
+fn nothing_active_without_anchors() {
+    assert_eq!(
+        track(&["0000", "1000", "0M01", "1111"]),
+        vec![(NONE, NONE); 4]
+    );
+}
+
+#[test]
+fn hold_active_from_head_through_tail() {
+    assert_eq!(
+        track(&["2000", "0100", "3000", "1000"]),
+        vec![
+            (Panel::LEFT, NONE), // head row
+            (Panel::LEFT, NONE), // underway
+            (Panel::LEFT, NONE), // tail row is still active
+            (NONE, NONE),        // released
+        ]
+    );
+}
+
+#[test]
+fn roll_tracked_as_roll_not_hold() {
+    assert_eq!(
+        track(&["0004", "0000", "0003", "0001"]),
+        vec![
+            (NONE, Panel::RIGHT),
+            (NONE, Panel::RIGHT),
+            (NONE, Panel::RIGHT),
+            (NONE, NONE),
+        ]
+    );
+}
+
+#[test]
+fn head_and_tail_on_same_row_in_different_columns() {
+    // Left's hold ends on the same row that Up's hold starts
+    assert_eq!(
+        track(&["2000", "3020", "0030"]),
+        vec![
+            (Panel::LEFT, NONE),
+            (Panel::LEFT | Panel::UP, NONE),
+            (Panel::UP, NONE),
+        ]
+    );
+}
+
+#[test]
+fn overlapping_hold_and_roll_end_independently() {
+    assert_eq!(
+        track(&["2004", "0110", "3000", "0003", "0000"]),
+        vec![
+            (Panel::LEFT, Panel::RIGHT),
+            (Panel::LEFT, Panel::RIGHT),
+            (Panel::LEFT, Panel::RIGHT),
+            (NONE, Panel::RIGHT),
+            (NONE, NONE),
+        ]
+    );
+}
+
+#[test]
+fn simultaneous_holds_on_every_panel() {
+    assert_eq!(
+        track(&["2222", "3333", "0000"]),
+        vec![(Panel::all(), NONE), (Panel::all(), NONE), (NONE, NONE)]
+    );
+}
+
+#[test]
+fn column_can_be_reused_after_tail() {
+    assert_eq!(
+        track(&["0200", "0300", "0400", "0300"]),
+        vec![
+            (Panel::DOWN, NONE),
+            (Panel::DOWN, NONE),
+            (NONE, Panel::DOWN),
+            (NONE, Panel::DOWN),
+        ]
+    );
+}
+
+#[test]
+fn stray_tail_is_ignored() {
+    // A tail with no head (malformed chart) shouldn't panic or activate anything
+    assert_eq!(track(&["3000", "1000"]), vec![(NONE, NONE); 2]);
+}
+
+#[test]
+fn other_notes_do_not_affect_active_anchors() {
+    // Taps, mines, fakes and lifts in other columns leave the hold alone
+    assert_eq!(
+        track(&["2000", "01M0", "0FL0", "3000"]),
+        vec![(Panel::LEFT, NONE); 4]
+    );
+}

@@ -3,7 +3,9 @@ pub use header::{BeatChange, Header};
 mod chart;
 pub use chart::{Chart, ChartMetadata, Difficulty, GrooveRadar};
 mod notes;
-pub use notes::{NoteRow, NoteType};
+pub use notes::{NoteRow, NoteType, PANELS, Panel};
+mod anchor;
+pub use anchor::AnchorTracker;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

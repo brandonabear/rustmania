@@ -1,5 +1,5 @@
 use crate::serialize::load;
-use crate::song::{Chart, Header, NoteRow, NoteType, Provenance, Song};
+use crate::song::{AnchorTracker, Chart, Header, NoteRow, NoteType, Provenance, Song};
 use crate::timing::TimingEngine;
 use anyhow::{Context, Result, bail};
 use std::fs;
@@ -118,6 +118,9 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
     // Upper bound on row count (also counts blank and separator lines)
     chart.notes.reserve(note_text.lines().count());
 
+    // Track anchored foot positions
+    let mut anchor_tracker = AnchorTracker::default();
+
     for (measure_idx, measure_text) in note_text.split(",").enumerate() {
         // Non-empty rows within a measure. A closure rather than a collected `Vec` so it
         // can be iterated twice (once to count, once to parse) without allocating per measure
@@ -143,6 +146,7 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
                 continue;
             }
 
+            let (holds_active, rolls_active) = anchor_tracker.advance(notes);
             chart.notes.push(NoteRow {
                 notes,
                 measure,
@@ -153,6 +157,8 @@ fn parse_notes(timing_engine: &TimingEngine, chart: &mut Chart, note_text: &str)
                     slot,
                     quantization,
                 )),
+                holds_active,
+                rolls_active,
             });
         }
     }
