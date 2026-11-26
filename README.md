@@ -12,6 +12,9 @@
 # Read and parse a `.ssc` simfile
 cargo run -- --path path/to/file.ssc;
 
+# Analyze parsed chart
+cargo run -- --path path/to/file.ssc --analyze;
+
 # Serialize as JSON (next to the input, as `file.json`)
 cargo run -- --path path/to/file.ssc --output;
 

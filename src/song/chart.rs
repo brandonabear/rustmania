@@ -1,3 +1,4 @@
+use crate::analyze::ChartAnalysis;
 use crate::song::NoteRow;
 use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
@@ -7,6 +8,8 @@ use std::str::FromStr;
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Chart {
     pub metadata: ChartMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub analysis: Option<ChartAnalysis>,
     pub notes: Vec<NoteRow>,
 }
 

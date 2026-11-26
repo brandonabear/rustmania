@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
+use rustmania::analyze::analyze_chart;
 use rustmania::parse;
 use rustmania::serialize::save;
 use std::path::PathBuf;
@@ -11,6 +12,10 @@ struct Cli {
     /// Path to the file to load: a `.ssc` simfile, or `.json` written by `--output`
     #[arg(short, long)]
     path: PathBuf,
+
+    /// Optional analyze chart statistics
+    #[arg(short, long)]
+    analyze: bool,
 
     /// Serialize to JSON. Defaults to the input path with a `.json` extension.
     #[arg(short, long, value_name = "PATH", num_args = 0..=1)]
@@ -25,8 +30,16 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let timer = Instant::now();
 
-    let song = parse(&cli.path)?;
+    let mut song = parse(&cli.path)?;
     println!("Loaded in {:.2} ms", timer.elapsed().as_secs_f64() * 1000.0);
+
+    if cli.analyze {
+        for chart in &mut song.charts {
+            let analysis = analyze_chart(chart)?;
+            chart.analysis = Some(analysis);
+            println!("{:#?}", chart.analysis);
+        }
+    }
 
     if let Some(output) = cli.output {
         let out_path = output.unwrap_or_else(|| cli.path.with_extension("json"));
